@@ -41,7 +41,7 @@ SELECT * FROM my_wishlist;
 -- a random nail polish from the user's collection as a suggestion for the day.
 
 DELIMITER $$
-CREATE FUNCTION np_suggestion(polishname VARCHAR(100), brandname VARCHAR(25))
+CREATE FUNCTION colourfortoday(polishname VARCHAR(100), brandname VARCHAR(25))
 RETURNS VARCHAR(200)
 DETERMINISTIC
 
@@ -51,7 +51,7 @@ RETURN CONCAT('Today you should try: ', polishname, ' by ',brandname);
 END $$
 DELIMITER ;
 
-SELECT np_suggestion(Name, Brand)
+SELECT colourfortoday(Name, Brand)
 FROM my_collection
 ORDER BY RAND()
 LIMIT 1;
@@ -67,7 +67,7 @@ DELIMITER $$
 CREATE PROCEDURE np_suggestion(selection VARCHAR(25))
 BEGIN
 IF selection in (SELECT MainColour FROM my_collection) OR selection in (SELECT Finish FROM my_collection) THEN
-	SELECT np_suggestion(Name, Brand) as 'Suggestion'
+	SELECT colourfortoday(Name, Brand) as 'Suggestion'
 		FROM my_collection
 		WHERE my_collection.Worn = FALSE AND
 			(CASE 
