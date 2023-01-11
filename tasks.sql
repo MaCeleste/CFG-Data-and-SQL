@@ -63,46 +63,8 @@ LIMIT 1;
 -- This procedure uses the function defined earlier to suggest a random unworn nail polish
 -- that matches either the colour or finish entered by the user.
 
---DELIMITER $$
---CREATE PROCEDURE np_suggestion(selection VARCHAR(25))
---BEGIN
---IF selection in (SELECT MainColour FROM my_collection) THEN
---	SELECT np_suggestion(Name, Brand)
---	FROM my_collection
---	WHERE my_collection.MainColour=selection AND my_collection.Worn = FALSE
---	ORDER BY RAND()
---	LIMIT 1;
---ELSEIF selection in (SELECT Finish FROM my_collection) THEN
---	SELECT np_suggestion(Name, Brand)
---	FROM my_collection
---	WHERE my_collection.Finish=selection AND my_collection.Worn = FALSE
---	ORDER BY RAND()
---	LIMIT 1;
---ELSE 
---	SELECT 'No nail polishes matching the description found' as 'Error';
---END IF;
---END$$
---DELIMITER ;
-
---DELIMITER $$
---CREATE PROCEDURE np_suggestion(selection VARCHAR(25))
---BEGIN
---SELECT np_suggestion(Name, Brand) as 'Suggestion'
---	FROM my_collection
---    WHERE my_collection.Worn = FALSE AND
---		(CASE 
---			WHEN selection in (SELECT MainColour FROM my_collection) THEN  my_collection.MainColour=selection
---			WHEN selection in (SELECT Finish FROM my_collection) THEN my_collection.Finish=selection
---		END)
-        
-        
---    ORDER BY RAND()
---	LIMIT 1;
---END$$
---DELIMITER ;
-
 DELIMITER $$
-CREATE PROCEDURE np_suggestion3(selection VARCHAR(25))
+CREATE PROCEDURE np_suggestion(selection VARCHAR(25))
 BEGIN
 IF selection in (SELECT MainColour FROM my_collection) OR selection in (SELECT Finish FROM my_collection) THEN
 	SELECT np_suggestion(Name, Brand) as 'Suggestion'
@@ -175,10 +137,9 @@ CREATE TRIGGER check_if_np_exists
 BEFORE INSERT on np_owned
 FOR EACH ROW
 BEGIN
-	IF NEW.np_id IN (
-		SELECT wishlist.np_id FROM wishlist)
-	THEN 
-		DELETE FROM wishlist WHERE wishlist.np_id=NEW.np_id;
+	IF NEW.np_id IN (SELECT wishlist.np_id FROM wishlist)
+		THEN 
+			DELETE FROM wishlist WHERE wishlist.np_id=NEW.np_id;
     END IF;
 END$$
 DELIMITER ;
@@ -188,4 +149,5 @@ INSERT INTO np_owned
 VALUES
 (2,1,'2022-02-10',FALSE,5);
 
-SELECT * FROM WISHLIST;
+SELECT * FROM wishlist;
+SELECT * FROM np_owned;
