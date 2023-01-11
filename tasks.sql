@@ -61,20 +61,70 @@ LIMIT 1;
 -----------------------------------------------------------------------------------------
 
 -- This procedure uses the function defined earlier to suggest a random unworn nail polish
--- that matches the colour entered by the user.
+-- that matches either the colour or finish entered by the user.
+
+--DELIMITER $$
+--CREATE PROCEDURE np_suggestion(selection VARCHAR(25))
+--BEGIN
+--IF selection in (SELECT MainColour FROM my_collection) THEN
+--	SELECT np_suggestion(Name, Brand)
+--	FROM my_collection
+--	WHERE my_collection.MainColour=selection AND my_collection.Worn = FALSE
+--	ORDER BY RAND()
+--	LIMIT 1;
+--ELSEIF selection in (SELECT Finish FROM my_collection) THEN
+--	SELECT np_suggestion(Name, Brand)
+--	FROM my_collection
+--	WHERE my_collection.Finish=selection AND my_collection.Worn = FALSE
+--	ORDER BY RAND()
+--	LIMIT 1;
+--ELSE 
+--	SELECT 'No nail polishes matching the description found' as 'Error';
+--END IF;
+--END$$
+--DELIMITER ;
+
+--DELIMITER $$
+--CREATE PROCEDURE np_suggestion(selection VARCHAR(25))
+--BEGIN
+--SELECT np_suggestion(Name, Brand) as 'Suggestion'
+--	FROM my_collection
+--    WHERE my_collection.Worn = FALSE AND
+--		(CASE 
+--			WHEN selection in (SELECT MainColour FROM my_collection) THEN  my_collection.MainColour=selection
+--			WHEN selection in (SELECT Finish FROM my_collection) THEN my_collection.Finish=selection
+--		END)
+        
+        
+--    ORDER BY RAND()
+--	LIMIT 1;
+--END$$
+--DELIMITER ;
 
 DELIMITER $$
-CREATE PROCEDURE colour_suggestion(colour VARCHAR(25))
+CREATE PROCEDURE np_suggestion3(selection VARCHAR(25))
 BEGIN
-SELECT np_suggestion(Name, Brand)
-FROM my_collection
-WHERE my_collection.MainColour=colour AND my_collection.Worn = FALSE
-ORDER BY RAND()
-LIMIT 1;
+IF selection in (SELECT MainColour FROM my_collection) OR selection in (SELECT Finish FROM my_collection) THEN
+	SELECT np_suggestion(Name, Brand) as 'Suggestion'
+		FROM my_collection
+		WHERE my_collection.Worn = FALSE AND
+			(CASE 
+				WHEN selection in (SELECT MainColour FROM my_collection) THEN  my_collection.MainColour=selection
+				WHEN selection in (SELECT Finish FROM my_collection) THEN my_collection.Finish=selection
+			END)
+			
+			
+		ORDER BY RAND()
+		LIMIT 1;
+ELSE 
+	SELECT 'No nail polishes matching the description found' as 'Error';
+END IF;
 END$$
 DELIMITER ;
 
-CALL colour_suggestion('Red');
+CALL np_suggestion('Red');
+CALL np_suggestion('Holographic');
+CALL np_suggestion('Olive');
 
 -----------------------------------------------------------------------------------------
 -- Prepare an example query with a subquery to demonstrate how to extract data from 
@@ -87,6 +137,30 @@ CALL colour_suggestion('Red');
 SELECT Name, Brand
 FROM my_collection
 WHERE Brand IN (SELECT bname from brands WHERE Country = 'UK');
+
+-----------------------------------------------------------------------------------------
+-- Prepare an example query with group by and having to demonstrate how to extract data
+-- from your DB for analysis
+-----------------------------------------------------------------------------------------
+
+-- This query shows most owned nail polishes brands (more than 5 nail polishes owned 
+-- from that particular brand)
+
+SELECT Brand, COUNT(Brand)
+FROM my_collection
+GROUP BY Brand
+HAVING COUNT(Brand) > 5
+ORDER BY COUNT(Brand) DESC;
+
+-- We assume the user has set a budget of £25 per month to spend on nail polish. This 
+-- query shows those months when the user went over budget, the number of bottles 
+-- purchased and the average price per bottle paid.
+
+SELECT DATE_FORMAT(date_of_purchase, '%m-%Y') as Month, ROUND(SUM(Cost),2) as 'Total Spent', COUNT(np_id) as 'Number of bottles', ROUND(SUM(Cost)/COUNT(np_id),2) as 'Average price per bottle'
+FROM np_owned 
+GROUP BY DATE_FORMAT(date_of_purchase, '%m-%Y')
+having SUM(Cost) > 25
+ORDER BY date_of_purchase;
 
 -----------------------------------------------------------------------------------------
 -- In your database, create a trigger and demonstrate how it runs
@@ -115,27 +189,3 @@ VALUES
 (2,1,'2022-02-10',FALSE,5);
 
 SELECT * FROM WISHLIST;
-
------------------------------------------------------------------------------------------
--- Prepare an example query with group by and having to demonstrate how to extract data
--- from your DB for analysis
------------------------------------------------------------------------------------------
-
--- This query shows most owned nail polishes brands (more than 5 nail polishes owned 
--- from that particular brand)
-
-SELECT Brand, COUNT(Brand)
-FROM my_collection
-GROUP BY Brand
-HAVING COUNT(Brand) > 5
-ORDER BY COUNT(Brand) DESC;
-
--- We assume the user has set a budget of £25 per month to spend on nail polish. This 
--- query shows those months when the user went over budget, the number of bottles 
--- purchased and the average price per bottle paid.
-
-SELECT DATE_FORMAT(date_of_purchase, '%m-%Y') as Month, ROUND(SUM(Cost),2) as 'Total Spent', COUNT(np_id) as 'Number of bottles', ROUND(SUM(Cost)/COUNT(np_id),2) as 'Average price per bottle'
-FROM np_owned 
-GROUP BY DATE_FORMAT(date_of_purchase, '%m-%Y')
-having SUM(Cost) > 25
-ORDER BY date_of_purchase;
