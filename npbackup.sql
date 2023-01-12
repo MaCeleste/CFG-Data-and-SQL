@@ -156,7 +156,7 @@ CREATE TABLE `np_owned` (
   PRIMARY KEY (`npowned_id`),
   UNIQUE KEY `np_id` (`np_id`),
   CONSTRAINT `np_owned_ibfk_1` FOREIGN KEY (`np_id`) REFERENCES `nail_polish` (`np_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=39 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=40 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -178,10 +178,9 @@ UNLOCK TABLES;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
 /*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `check_if_np_exists` BEFORE INSERT ON `np_owned` FOR EACH ROW BEGIN
-	IF NEW.np_id IN (
-		SELECT wishlist.np_id FROM wishlist)
-	THEN 
-		DELETE FROM wishlist WHERE wishlist.np_id=NEW.np_id;
+	IF NEW.np_id IN (SELECT wishlist.np_id FROM wishlist)
+		THEN 
+			DELETE FROM wishlist WHERE wishlist.np_id=NEW.np_id;
     END IF;
 END */;;
 DELIMITER ;
@@ -204,7 +203,7 @@ CREATE TABLE `wishlist` (
   PRIMARY KEY (`wishlist_id`),
   UNIQUE KEY `np_id` (`np_id`),
   CONSTRAINT `wishlist_ibfk_1` FOREIGN KEY (`np_id`) REFERENCES `nail_polish` (`np_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -213,7 +212,7 @@ CREATE TABLE `wishlist` (
 
 LOCK TABLES `wishlist` WRITE;
 /*!40000 ALTER TABLE `wishlist` DISABLE KEYS */;
-INSERT INTO `wishlist` VALUES (1,20,'2022-12-30'),(2,28,'2022-10-05'),(3,2,'2022-05-15'),(4,36,'2022-05-15'),(5,46,'2022-11-15'),(6,51,'2022-11-15');
+INSERT INTO `wishlist` VALUES (1,20,'2022-12-30'),(2,28,'2022-10-05'),(4,36,'2022-05-15'),(5,46,'2022-11-15'),(6,51,'2022-11-15'),(7,2,'2022-05-15');
 /*!40000 ALTER TABLE `wishlist` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -224,7 +223,7 @@ UNLOCK TABLES;
 --
 -- Dumping routines for database 'nailpolishapp'
 --
-/*!50003 DROP FUNCTION IF EXISTS `np_suggestion` */;
+/*!50003 DROP FUNCTION IF EXISTS `colourfortoday` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
@@ -234,7 +233,7 @@ UNLOCK TABLES;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` FUNCTION `np_suggestion`(polishname VARCHAR(100), brandname VARCHAR(25)) RETURNS varchar(200) CHARSET utf8mb4
+CREATE DEFINER=`root`@`localhost` FUNCTION `colourfortoday`(polishname VARCHAR(100), brandname VARCHAR(25)) RETURNS varchar(200) CHARSET utf8mb4
     DETERMINISTIC
 BEGIN
 RETURN CONCAT('Today you should try: ', polishname, ' by ',brandname);
@@ -245,7 +244,7 @@ DELIMITER ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 DROP PROCEDURE IF EXISTS `colour_suggestion` */;
+/*!50003 DROP PROCEDURE IF EXISTS `np_suggestion` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
@@ -255,13 +254,23 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `colour_suggestion`(colour VARCHAR(25))
+CREATE DEFINER=`root`@`localhost` PROCEDURE `np_suggestion`(selection VARCHAR(25))
 BEGIN
-SELECT np_suggestion(Name, Brand)
-FROM my_collection
-WHERE my_collection.MainColour=colour AND my_collection.Worn = FALSE
-ORDER BY RAND()
-LIMIT 1;
+IF selection in (SELECT MainColour FROM my_collection) OR selection in (SELECT Finish FROM my_collection) THEN
+	SELECT colourfortoday(Name, Brand) as 'Suggestion'
+		FROM my_collection
+		WHERE my_collection.Worn = FALSE AND
+			(CASE 
+				WHEN selection in (SELECT MainColour FROM my_collection) THEN  my_collection.MainColour=selection
+				WHEN selection in (SELECT Finish FROM my_collection) THEN my_collection.Finish=selection
+			END)
+			
+			
+		ORDER BY RAND()
+		LIMIT 1;
+ELSE 
+	SELECT 'No nail polishes matching the description found' as 'Error';
+END IF;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -314,4 +323,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2023-01-08 23:03:38
+-- Dump completed on 2023-01-12 13:01:51
